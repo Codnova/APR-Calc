@@ -5,6 +5,7 @@ let currentValue = 0;
 let values = [];
 let interval = null;
 let startTime = 0;
+let futureValue = 0;
 const secondsPerYear = 365 * 24 * 60 * 60;
 
 function drawChart() {
@@ -28,6 +29,7 @@ function update() {
     const elapsed = (Date.now() - startTime) / 1000; // seconds
     currentValue = amount * Math.pow(1 + rate / 100 / secondsPerYear, elapsed);
     document.getElementById('value').textContent = currentValue.toFixed(2);
+    document.getElementById('profit').textContent = (currentValue - amount).toFixed(2);
     values.push(currentValue);
     if (values.length > 60) values.shift();
     drawChart();
@@ -38,9 +40,12 @@ function start() {
     amount = parseFloat(document.getElementById('amount').value) || 0;
     rate = parseFloat(document.getElementById('rate').value) || 0;
     currentValue = amount;
+    futureValue = amount * Math.pow(1 + rate / 100 / secondsPerYear, secondsPerYear);
     startTime = Date.now();
     values = [currentValue];
     document.getElementById('value').textContent = currentValue.toFixed(2);
+    document.getElementById('profit').textContent = '0.00';
+    document.getElementById('future').textContent = futureValue.toFixed(2);
     drawChart();
     interval = setInterval(update, 1000);
     running = true;
