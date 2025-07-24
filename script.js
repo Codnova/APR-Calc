@@ -2,37 +2,33 @@ let running = false;
 let amount = 0;
 let rate = 0;
 let currentValue = 0;
-let values = [];
 let interval = null;
 let startTime = 0;
-let futureValue = 0;
-const secondsPerYear = 365 * 24 * 60 * 60;
+let initialTime = 0;
 
-function drawChart() {
-    const canvas = document.getElementById('chart');
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (values.length === 0) return;
-    const maxVal = Math.max(...values);
-    const scaleY = canvas.height / maxVal;
-    const stepX = canvas.width / (values.length - 1 || 1);
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height - values[0] * scaleY);
-    for (let i = 1; i < values.length; i++) {
-        ctx.lineTo(stepX * i, canvas.height - values[i] * scaleY);
-    }
-    ctx.strokeStyle = 'blue';
-    ctx.stroke();
+const secondsPerYear = 365 * 24 * 60 * 60;
+const secondsPerDay = 24 * 60 * 60;
+
+function formatCurrency(val) {
+    // Format with commas and 4 decimals
+    return '$' + Number(val).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4});
 }
 
-function update() {
-    const elapsed = (Date.now() - startTime) / 1000; // seconds
+function updatePrincipal() {
+    const elapsed = (Date.now() - startTime) / 1000 + initialTime; // seconds
     currentValue = amount * Math.pow(1 + rate / 100 / secondsPerYear, elapsed);
-    document.getElementById('value').textContent = currentValue.toFixed(2);
-    document.getElementById('profit').textContent = (currentValue - amount).toFixed(2);
-    values.push(currentValue);
-    if (values.length > 60) values.shift();
-    drawChart();
+    document.getElementById('principal').textContent = formatCurrency(currentValue);
+}
+
+function updateProfits() {
+    // Profit after 1 year
+    const futureValue = amount * Math.pow(1 + rate / 100 / secondsPerYear, secondsPerYear);
+    const profitYear = futureValue - amount;
+    document.getElementById('profitYear').textContent = formatCurrency(profitYear);
+    // Profit per day
+    const valuePerDay = amount * Math.pow(1 + rate / 100 / secondsPerYear, secondsPerDay);
+    const profitDay = valuePerDay - amount;
+    document.getElementById('profitDay').textContent = formatCurrency(profitDay);
 }
 
 function start() {
@@ -40,24 +36,58 @@ function start() {
     amount = parseFloat(document.getElementById('amount').value) || 0;
     rate = parseFloat(document.getElementById('rate').value) || 0;
     currentValue = amount;
-    futureValue = amount * Math.pow(1 + rate / 100 / secondsPerYear, secondsPerYear);
+    // Reset time if starting fresh
+    if (!initialTime) initialTime = 0;
     startTime = Date.now();
-    values = [currentValue];
-    document.getElementById('value').textContent = currentValue.toFixed(2);
-    document.getElementById('profit').textContent = '0.00';
-    document.getElementById('future').textContent = futureValue.toFixed(2);
-    drawChart();
-    interval = setInterval(update, 1000);
+    document.getElementById('principal').textContent = formatCurrency(amount);
+    document.getElementById('aprDisplay').textContent = `Earning ${rate.toFixed(2)}% APR`;
+    updateProfits();
+    document.getElementById('apr-form').style.display = 'none';
+    document.getElementById('display').style.display = 'flex';
+    interval = setInterval(updatePrincipal, 1000/30); // update 30 times per second for smoothness
     running = true;
     document.getElementById('stop').disabled = false;
+    document.getElementById('start').disabled = true;
 }
 
 function stop() {
     if (!running) return;
     clearInterval(interval);
     running = false;
+    // Save elapsed time so resume works
+    initialTime += (Date.now() - startTime) / 1000;
+    document.getElementById('apr-form').style.display = 'flex';
+    document.getElementById('display').style.display = 'none';
     document.getElementById('stop').disabled = true;
+    document.getElementById('start').disabled = false;
 }
 
-document.getElementById('start').addEventListener('click', start);
+function resetState() {
+    running = false;
+    initialTime = 0;
+    clearInterval(interval);
+    document.getElementById('principal').textContent = '$0.0000';
+    document.getElementById('aprDisplay').textContent = 'Earning 0.00% APR';
+    document.getElementById('profitYear').textContent = '$0.0000';
+    document.getElementById('profitDay').textContent = '$0.0000';
+    document.getElementById('apr-form').style.display = 'flex';
+    document.getElementById('display').style.display = 'none';
+    document.getElementById('stop').disabled = true;
+    document.getElementById('start').disabled = false;
+}
+
+document.getElementById('start').addEventListener('click', () => {
+    initialTime = 0;
+    start();
+});
 document.getElementById('stop').addEventListener('click', stop);
+window.addEventListener('DOMContentLoaded', resetState);
+// Update profits when inputs change
+['amount', 'rate'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateProfits);
+});
+// Go Back button logic
+const goBackBtn = document.getElementById('goBack');
+if (goBackBtn) {
+    goBackBtn.addEventListener('click', stop);
+}
