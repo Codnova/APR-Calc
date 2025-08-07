@@ -1,0 +1,10 @@
+{
+  "name": "APR Live Principal",
+  "short_name": "APR Calc",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ff267e",
+  "theme_color": "#ff267e",
+  "icons": []
+}
+
